@@ -14,42 +14,11 @@
 //each hill climb is parallelised to improve performance
 
 //PREAMBLE
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <cmath>
-#include <string>
-#include <time.h>
-#include <future>
-
-using namespace std;
+#include"Optimisation Head.h"
 
 //define structure to hold info about each place
-struct place {
-	double lat;
-	double lon;
-	double pop;
-	double AvDist;
-};
 
-//DECLARE FUNCTIONS
-//function to read a matrix from a comma delimited file and store in 2D vector
-vector <place> readData(string readfilename);
 
-//function to calculate the Great Circle distance between two positions
-double great_circle(place A, place B);
-
-//function to convert degrees to radians
-double rad(double angle);
-
-//function to return a random number between two limits, lower and upper
-double random_coords(double lower, double upper, int n);
-
-//function to calculate total great circle distance between a point and a vector of points
-double total_distance(place point, vector<place> places, double latMin, double latMax);
-
-//hillclimb including multiple random starts
-place hillclimb(double latMin, double latMax, double longMin, double longMax, vector<place> places, double step, int NRand_evals);
 
 /////////////////////////////////////////////////////////////////////////////////////
 
@@ -57,20 +26,20 @@ place hillclimb(double latMin, double latMax, double longMin, double longMax, ve
 int f_evals = 0;
 
 int main() {
-	vector<place> GBplacesData;										//vector to hold GBplaces
-	place hubN;														//'place' to hold position of Northern hub
-	place hubS;														//'place' to hold position of Southern hub
-	place singlehub;												//'place' to hold position of a single hub
+	std::vector<optim_hub::place> GBplacesData;										//vector to hold GBplaces
+	optim_hub::place hubN;														//'place' to hold position of Northern hub
+	optim_hub::place hubS;														//'place' to hold position of Southern hub
+	optim_hub::place singlehub;												//'place' to hold position of a single hub
 
 	//variables to store result of hillclimb function
-	place N1;
-	place N2;
-	place S1;
-	place S2;
-	place single1;
-	place single2;
+	optim_hub::place N1;
+	optim_hub::place N2;
+	optim_hub::place S1;
+	optim_hub::place S2;
+	optim_hub::place single1;
+	optim_hub::place single2;
 	//read GBplaces and store data in vector
-	GBplacesData = readData("GBplaces.csv");
+	GBplacesData = optim_hub::readData("GBplaces.csv");
 	//rng limits
 	double latMin = 49.949228;										//min latitude for rng and hill climb limit
 	double latMax = 58.631250;										//max latitude for rng and hill climb limit
@@ -91,14 +60,14 @@ int main() {
 
 	//call hillclimb function
 	//North
-	auto hillN1 = async(hillclimb, dividingLine, latMax, longMin, longMax, GBplacesData, step, NRand_evals);
-	auto hillN2 = async(hillclimb, dividingLine, latMax, longMin, longMax, GBplacesData, step, NRand_evals);
+	auto hillN1 = async(optim_hub::hillclimb, dividingLine, latMax, longMin, longMax, GBplacesData, step, NRand_evals);
+	auto hillN2 = async(optim_hub::hillclimb, dividingLine, latMax, longMin, longMax, GBplacesData, step, NRand_evals);
 	//South
-	auto hillS1 = async(hillclimb, latMin, dividingLine, longMin, longMax, GBplacesData, step, NRand_evals);
-	auto hillS2 = async(hillclimb, latMin, dividingLine, longMin, longMax, GBplacesData, step, NRand_evals);
+	auto hillS1 = async(optim_hub::hillclimb, latMin, dividingLine, longMin, longMax, GBplacesData, step, NRand_evals);
+	auto hillS2 = async(optim_hub::hillclimb, latMin, dividingLine, longMin, longMax, GBplacesData, step, NRand_evals);
 	//Single hub
-	auto hillSingle1 = async(hillclimb, latMin, latMax, longMin, longMax, GBplacesData, step, NRand_evals);
-	auto hillSingle2 = async(hillclimb, latMin, latMax, longMin, longMax, GBplacesData, step, NRand_evals);
+	auto hillSingle1 = async(optim_hub::hillclimb, latMin, latMax, longMin, longMax, GBplacesData, step, NRand_evals);
+	auto hillSingle2 = async(optim_hub::hillclimb, latMin, latMax, longMin, longMax, GBplacesData, step, NRand_evals);
 
 	//get results from async streams
 	//North
@@ -133,12 +102,12 @@ int main() {
 		singlehub = single2;
 	}
 	//print out position and distance
-	cout << "Hubs     :" << "Latitude Longitude :" << "Total Distance \n";
-	cout << "Northern :" << hubN.lat << " " << hubN.lon << " : " << hubN.AvDist << "\n";
-	cout << "Southern :" << hubS.lat << " " << hubS.lon << " : " << hubS.AvDist << "\n";
-	cout << "One hub  :" << singlehub.lat << " " << singlehub.lon << " : " << singlehub.AvDist << "\n";
+	std::cout << "Hubs     :" << "Latitude Longitude :" << "Total Distance \n";
+	std::cout << "Northern :" << hubN.lat << " " << hubN.lon << " : " << hubN.AvDist << "\n";
+	std::cout << "Southern :" << hubS.lat << " " << hubS.lon << " : " << hubS.AvDist << "\n";
+	std::cout << "One hub  :" << singlehub.lat << " " << singlehub.lon << " : " << singlehub.AvDist << "\n";
 	//print total number of function evaluations
-	cout << "Function evaluations: " << f_evals << "\n";
+	//------------------------------------------------std::cout << "Function evaluations: " << f_evals << "\n";
 
 	//calculate total price for each scenario assuming all places are visited in a day
 	//2 hubs
@@ -154,233 +123,21 @@ int main() {
 	double payback;
 
 	if (ppDay1 > ppDay2) {
-		cout << "2 hubs is cheaper to run by " << ppDay1 - ppDay2 << " GBP/day \n";
+		std::cout << "2 hubs is cheaper to run by " << ppDay1 - ppDay2 << " GBP/day \n";
 		payback = (start_up2 - start_up1) / (ppDay1 - ppDay2);
-		cout << "number of days to pay off the difference is " << payback << "days. \n";
+		std::cout << "1 hub is cheaper to run by " << ppDay2 - ppDay1 << " GBP/day \n";
+		std::cout << "number of days to pay off the difference is " << payback << "days. \n";
 		exit(1);
 	}
 	else if (ppDay1 < ppDay2) {
-		cout << "1 hub is cheaper to run by " << ppDay2 - ppDay1 << " GBP/day \n";
+		std::cout << "1 hub is cheaper to run by " << ppDay2 - ppDay1 << " GBP/day \n";
 		payback = (start_up2 - start_up1) / (ppDay2 - ppDay1);
-		cout << "number of days to pay off the difference is " << payback << " days. \n";
+		std::cout << "number of days to pay off the difference is " << payback << " days. \n";
 		exit(1);
 	}
 	else {
-		cout << "Both have the same running cost. 1 hub is cheaper. \n";
+		std::cout << "Both have the same running cost. 1 hub is cheaper. \n";
 		exit(1);
 	}
 	return 0;
-}
-
-//FUNCTIONS
-
-//function to read a matrix from a comma delimited file and store in a vector of 'place' structures
-vector <place> readData(string readfilename) {
-	//declare vars
-	string line;										//string to store lines
-	vector <place> storematrix;							//vector to store data
-														//open file and check if open
-	ifstream dataFile(readfilename);
-
-	if (dataFile.is_open()) {
-		cout << "The file opened successfully.\n";
-		//skip line of headers
-		string firstline;
-		getline(dataFile, firstline);
-
-		//loop over file lines and store line as string
-		while (!dataFile.eof()) {
-			getline(dataFile, line);
-
-			vector <int> commaLocations;					//vector to store location of each comma in each line
-
-															//check line is not empty
-			if (line.length() > 0) {
-
-				//parse line for commas and store position in commaLocations
-				int comma = 0;								//temp to store comma most recent location
-				while (line.find(',', comma + 1) != -1) {
-					comma = (int)line.find(',', comma + 1);
-					commaLocations.push_back(comma);
-				}
-				place data;									//structure to hold data for each place
-
-				string lineSegment;							//string to store each element before being converted to double
-				double lat;									//double to store lat
-				double lon;									//double to store longitude
-				double pop;									//double to store population
-
-															//seperate each element
-				lineSegment = line.substr(commaLocations[1] + 1, (commaLocations[2] - 1 - (commaLocations[1])));
-				pop = atof(lineSegment.c_str());
-				data.pop = pop;
-
-				lineSegment = line.substr(commaLocations[2] + 1, (commaLocations[3] - 1 - (commaLocations[2])));
-				lat = atof(lineSegment.c_str());
-				data.lat = lat;
-
-				lineSegment = line.substr(commaLocations[3] + 1, (line.length() - 1 - (commaLocations[3])));
-				lon = atof(lineSegment.c_str());
-				data.lon = lon;
-
-				storematrix.push_back(data);
-			}
-		}
-		dataFile.close();
-	}
-	else {
-		cout << "An error occurred, the file failed to open.\n";
-		exit(1);
-	}
-
-	return storematrix;
-}
-
-//function to return a random number between two limits, lower and upper
-double random_coords(double lower, double upper, int n) {
-	// n is the amount of bits to split the range into
-	double r;
-	r = lower + (rand() % (n + 1) * (1. / n) * (upper - lower));
-	return r;
-}
-
-//function to convert degrees to radians
-double rad(double angle) {
-	const double pi = 4 * atan(1);
-	double radians = angle * (pi / 180);
-	return radians;
-}
-
-//function to calculate the Great Circle distance between two positions
-double great_circle(place A, place B) {
-	//declare vars
-	const double R = 3958.75;
-	double latA = rad(A.lat);
-	double latB = rad(B.lat);
-	double longA = rad(A.lon);
-	double longB = rad(B.lon);
-
-	double dLat = latB - latA;
-	double dLong = longB - longA;
-	double a = pow(sin(dLat / 2), 2) + cos(latA) * cos(latB) * pow(sin(dLong / 2), 2);
-	double c = 2 * atan(sqrt(a) / sqrt(1 - a));
-	double dist = R * c;
-	return dist;
-}
-
-//function to calculate total great circle distance between a point and a vector of points within defined north-south box
-double total_distance(place point, vector<place> places, double latMin, double latMax) {
-	//loop over places and find total distance
-	double distance = 0;
-	for (int n = 0; n < (int)places.size(); n++) {
-		if (places[n].lat > latMax || places[n].lat < latMin) {
-			//don't look at places outside set boundary
-		}
-		else {
-			//calculate distance between point and place
-			double d = great_circle(places[n], point);
-
-			//there and back is 2d
-			d = 2 * d;
-			//better distance approx
-			if (d > 150) {
-				d = d * 1.2;
-			}
-			else if (d > 250) {
-				d = d * 1.4;
-			}
-			//multiple visits needed for higher populations
-			if (places[n].pop >= 250000) {
-				d = d * 2;
-			}
-			else if (places[n].pop >= 500000) {
-				d = d * 3;
-			}
-			else if (places[n].pop >= 750000) {
-				d = d * 4;
-			}
-			else if (places[n].pop >= 1000000) {
-				d = d * 4;
-			}
-			distance += d;
-			//count evaluations of function
-			f_evals++;
-		}
-	}
-	return distance;
-}
-
-//hillclimb including multiple random starts
-place hillclimb(double latMin, double latMax, double longMin, double longMax, vector<place> places, double step, int NRand_evals) {
-
-	//'place' to store global minimum
-	place bestPlace;
-	bestPlace.AvDist = 999999999;									//global minimum start point
-	bestPlace.lat = 0;
-	bestPlace.lon = 0;
-
-	double dist, oldDist, newDist, minDist;							//declare vars to hold total distances
-	int dLat, dLong;												//integers to store successful moves
-	int iteration = 1;												//count number of steps taken in the hillclimb
-
-	//loop over random points to find a global minimum
-	for (int c = 0; c < NRand_evals; c++) {
-		//find random number and store in place type
-		place startPos;												//place type to hold random x y start position
-		startPos.lat = random_coords(latMin, latMax, 1000);
-		startPos.lon = random_coords(longMin, longMax, 1000);
-
-		dist = total_distance(startPos, places, latMin, latMax);
-
-		//loop to reduce totalDist
-		do {
-			oldDist = dist;
-			minDist = oldDist;
-			//generate 8 surrounding points
-			for (int a = -1; a <= 1; a++) {
-				for (int b = -1; b <= 1; b++) {
-					//calculate new point and store in temporary test position array
-					place testPos;
-					testPos.lat = startPos.lat + step * a;
-					testPos.lon = startPos.lon + step * b;
-
-					if (a == b == 0) {
-						//don't need to look at current position
-					}
-					else if (testPos.lat > latMax || testPos.lat < latMin) {
-						//don't look at places outside UK box
-					}
-					else if (testPos.lon > longMax || testPos.lon < longMin) {
-						//don't look at places outside UK box
-					}
-					else {
-						//calculate dist at new point
-						newDist = total_distance(testPos, places, latMin, latMax);
-						//check against minimum distance
-						if (newDist < minDist) {
-							//store the movement
-							dLat = a;
-							dLong = b;
-							minDist = newDist;
-						}
-					}
-				}
-			}
-			//update start position to new minimum
-			startPos.lat = startPos.lat + step * dLat;
-			startPos.lon = startPos.lon + step * dLong;
-			//update value
-			dist = minDist;
-			//print new movement
-			iteration++;
-
-		} while (dist < oldDist);										//continue iterating until the distance cant get smaller			
-
-		if (dist < bestPlace.AvDist) {
-			bestPlace.AvDist = dist;
-			bestPlace.lat = startPos.lat;
-			bestPlace.lon = startPos.lon;
-		}
-	}
-	return bestPlace;
 }

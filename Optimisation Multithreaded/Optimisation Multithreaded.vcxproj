@@ -146,7 +146,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Optimisation Head.cpp" />
     <ClCompile Include="Optimisation Multithreaded.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Optimisation Head.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
